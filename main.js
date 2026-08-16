@@ -2,6 +2,8 @@ const { app, BrowserWindow, ipcMain, session, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
+const APP_URL = 'https://gammick.base44.app';
+
 let mainWindow;
 
 function createWindow() {
@@ -13,14 +15,16 @@ function createWindow() {
     frame: true,
     fullscreen: true,
     webPreferences: {
-      webSecurity: false,
       contextIsolation: true,
       nodeIntegration: false,
       preload: path.join(__dirname, 'preload.js'),
     },
   });
 
-  mainWindow.loadFile('index.html');
+  // האתר נטען ישירות כדף העליון ולא בתוך iframe, כדי שהאחסון שלו יהיה
+  // first-party. בתוך iframe הוא היה third-party, ממופתח לפי ה-origin
+  // של הדף העליון (file://) — ולכן נמחק כשהמפתוח הזה השתנה.
+  mainWindow.loadURL(APP_URL);
 
   if (!app.isPackaged) {
     mainWindow.webContents.openDevTools();
