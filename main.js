@@ -34,9 +34,39 @@ function createWindow() {
 
 // נרשם פעם אחת בלבד. קודם הרישום היה בתוך createWindow, כך שכל פתיחת
 // חלון נוספת (דרך activate) הייתה מוסיפה מאזין ומדפיסה פעמיים.
+// התוכן מגיע מהאתר ונטען כ-data URL. בלי הצהרת כיוון מפורשת כרומיום
+// מניח שמאל-לימין, ולכן ההדפסה יצאה הפוכה. אם האתר שולח מסמך שלם
+// מכבדים אותו ורק משלימים dir; אחרת עוטפים במסמך תקין.
+function buildPrintDocument(content) {
+  if (/<html[\s>]/i.test(content)) {
+    return content.replace(/<html([^>]*)>/i, (match, attrs) =>
+      /\bdir\s*=/i.test(attrs) ? match : `<html${attrs} dir="rtl" lang="he">`
+    );
+  }
+
+  return `<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { margin: 10mm; }
+  body {
+    direction: rtl;
+    text-align: right;
+    font-family: "Segoe UI", Arial, sans-serif;
+    margin: 0;
+  }
+  table { direction: rtl; border-collapse: collapse; }
+  th, td { text-align: right; }
+</style>
+</head>
+<body>${content}</body>
+</html>`;
+}
+
 ipcMain.on("sendPrint", (event, args) => {
   const printWindow = new BrowserWindow({ show: false });
-  printWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(args));
+  printWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(buildPrintDocument(args)));
   printWindow.webContents.once('did-finish-load', () => {
     printWindow.webContents.print(
       { silent: true, printBackground: true },
